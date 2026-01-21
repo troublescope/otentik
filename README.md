@@ -150,13 +150,38 @@ src/
 
 ## 🌐 Deployment
 
-### Vercel (Recommended)
+### Vercel (Hobby Plan)
 
+**Catatan Penting untuk Akun Vercel Hobby:**
+
+| Fitur | Hobby Plan | Status |
+|-------|------------|--------|
+| Deployment | ✅ Full support | Aktif |
+| Custom Domain | ✅ Unlimited | Aktif |
+| Serverless Functions | 100h/bulan | Aktif |
+| Cron Jobs | ❌ Tidak didukung | N/A |
+| Multiple Regions | ❌ Hanya 1 region | N/A |
+
+### Deploy ke Vercel:
+
+**Option 1: Via Vercel Dashboard (Recommended)**
+1. Buka [vercel.com/new](https://vercel.com/new)
+2. Import dari GitHub: `mxwllalpha/dramabox-web`
+3. Tambah environment variables:
+   ```
+   UPSTREAM_API=https://api.megawe.net
+   DEFAULT_LANGUAGE=in
+   NEXT_PUBLIC_SITE_URL=https://your-domain.vercel.app
+   ```
+4. Klik **Deploy**
+
+**Option 2: Via Vercel CLI**
 ```bash
 # Install Vercel CLI
 npm i -g vercel
 
-# Deploy
+# Login dan deploy
+vercel login
 vercel
 ```
 
