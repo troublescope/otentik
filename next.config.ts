@@ -128,62 +128,11 @@ const nextConfig: NextConfig = {
   },
 
   // ===========================================
-  // Bundle Optimization for Vercel
+  // Turbopack Configuration
   // ===========================================
-  webpack: (config, { dev, isServer }) => {
-    // Optimize bundle size for Vercel deployment
-    if (!dev && !isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-      };
-    }
-
-    // Optimize for Vercel Edge
-    config.optimization = {
-      ...config.optimization,
-      splitChunks: {
-        chunks: "all",
-        cacheGroups: {
-          default: false,
-          vendors: false,
-          // Vendor chunk for React and Next.js
-          framework: {
-            name: "framework",
-            chunks: "all",
-            test: /[\\/]node_modules[\\/](react|react-dom|scheduler|props)[\\/]/,
-            priority: 40,
-            enforce: true,
-          },
-          // Vendor chunk for Radix UI
-          lib: {
-            test: /[\\/]node_modules[\\/](@radix-ui|lucide-react)[\\/]/,
-            name: "lib",
-            priority: 30,
-            minChunks: 1,
-            reuseExistingChunk: true,
-          },
-          // Vendor chunk for TanStack Query
-          TanStack: {
-            test: /[\\/]node_modules[\\/](@tanstack)[\\/]/,
-            name: "tanstack",
-            priority: 25,
-            minChunks: 1,
-            reuseExistingChunk: true,
-          },
-          commons: {
-            name: "commons",
-            chunks: "all",
-            minChunks: 2,
-            priority: 20,
-            reuseExistingChunk: true,
-            enforce: true,
-          },
-        },
-      },
-    };
-
-    return config;
+  turbopack: {
+    // Turbopack handles most optimizations automatically
+    // No additional config needed for basic usage
   },
 
   // ===========================================
