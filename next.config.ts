@@ -63,12 +63,66 @@ const nextConfig: NextConfig = {
   // ===========================================
   // Vercel Edge Runtime Configuration
   // ===========================================
-  // Force Edge Runtime for specific routes
-  async rewrites() {
+
+  // Security headers for all routes
+  async headers() {
     return [
       {
-        source: "/api/dramabox/:path*",
-        destination: "/api/dramabox/:path*",
+        source: "/api/:path*",
+        headers: [
+          {
+            key: "Access-Control-Allow-Origin",
+            value: "*",
+          },
+          {
+            key: "Access-Control-Allow-Methods",
+            value: "GET, POST, PUT, DELETE, OPTIONS",
+          },
+          {
+            key: "Access-Control-Allow-Headers",
+            value: "Content-Type, Authorization",
+          },
+          {
+            key: "Cache-Control",
+            value: "s-maxage=60, stale-while-revalidate=300",
+          },
+        ],
+      },
+      {
+        source: "/:path*",
+        headers: [
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+          {
+            key: "X-Frame-Options",
+            value: "DENY",
+          },
+          {
+            key: "X-XSS-Protection",
+            value: "1; mode=block",
+          },
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+        ],
+      },
+    ];
+  },
+
+  // Redirect root to default language
+  async redirects() {
+    return [
+      {
+        source: "/",
+        destination: "/in",
+        permanent: false,
       },
     ];
   },
