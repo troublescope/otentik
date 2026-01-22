@@ -153,11 +153,6 @@ const nextConfig: NextConfig = {
   productionBrowserSourceMaps: false,
 
   // ===========================================
-  // Optimize output for Vercel Edge
-  // ===========================================
-  output: "standalone",
-
-  // ===========================================
   // Logging configuration
   // ===========================================
   logging: {
