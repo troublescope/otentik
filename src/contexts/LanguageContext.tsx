@@ -73,16 +73,17 @@ export function LanguageProvider({ children, initialLanguage }: LanguageProvider
     }
   }, []);
 
-  // Don't render children until language is initialized to prevent hydration mismatch
-  if (!isInitialized) {
-    return null;
-  }
-
   // Create stable context value to prevent infinite re-renders
+  // IMPORTANT: useMemo must be called BEFORE any early returns to maintain hooks order
   const contextValue = useMemo(
     () => ({ language, setLanguage }),
     [language, setLanguage]
   );
+
+  // Don't render children until language is initialized to prevent hydration mismatch
+  if (!isInitialized) {
+    return null;
+  }
 
   return (
     <LanguageContext.Provider value={contextValue}>
