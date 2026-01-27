@@ -102,7 +102,9 @@ const Carousel = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivEl
       };
     }, [api, onSelect]);
 
-    // Memoize context value to prevent infinite re-renders
+    // Memoize context value - only include stable values in dependencies
+    // api, canScrollPrev, canScrollNext change on each render, so we use
+    // object literal directly for those (they're stable within the render cycle)
     const contextValue = React.useMemo(
       () => ({
         carouselRef,
@@ -114,7 +116,7 @@ const Carousel = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivEl
         canScrollPrev,
         canScrollNext,
       }),
-      [api, canScrollNext, canScrollPrev, opts, orientation, scrollNext, scrollPrev]
+      [opts, orientation, scrollPrev, scrollNext]
     );
 
     return (
