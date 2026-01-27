@@ -64,7 +64,9 @@ const FormItemContext = React.createContext<FormItemContextValue>({} as FormItem
 const FormItem = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => {
     const id = React.useId();
-    const contextValue = React.useMemo(() => ({ id }), [id]);
+    // useId() is stable across renders, so we can use it directly in context
+    // No need for useMemo since useId() guarantees the same value
+    const contextValue = { id };
 
     return (
       <FormItemContext.Provider value={contextValue}>

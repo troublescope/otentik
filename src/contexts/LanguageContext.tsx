@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
 import type { SupportedLanguage } from '@/types/language';
 import {
   DEFAULT_LANGUAGE,
@@ -48,7 +48,7 @@ export function LanguageProvider({ children, initialLanguage }: LanguageProvider
     }
   }, [initialLanguage]);
 
-  const setLanguage = (lang: SupportedLanguage) => {
+  const setLanguage = useCallback((lang: SupportedLanguage) => {
     setLanguageState(lang);
     localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
     // Navigate to new language route
@@ -71,7 +71,7 @@ export function LanguageProvider({ children, initialLanguage }: LanguageProvider
         }
       }
     }
-  };
+  }, []);
 
   // Don't render children until language is initialized to prevent hydration mismatch
   if (!isInitialized) {
