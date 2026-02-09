@@ -1,27 +1,26 @@
+/**
+ * Header Component
+ *
+ * Main navigation header with search trigger and mobile menu.
+ * Search functionality is now decoupled via SearchContext.
+ */
+
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import { createPortal } from "react-dom";
+import { useState, useMemo } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { Search, X, Play, Menu } from "lucide-react";
-import { useSearchDramas } from "@/hooks/useDramas";
-import { useDebounce } from "@/hooks/useDebounce";
+import { usePathname } from "next/navigation";
+import { Play, Menu } from "lucide-react";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useTranslation } from "@/hooks/useTranslation";
 import { LanguageSelector } from "@/components/LanguageSelector";
+import { SearchDialog, SearchTrigger } from "@/components/SearchDialog";
 
 export function Header() {
   const pathname = usePathname();
-  const router = useRouter();
   const { language } = useLanguage();
   const { t } = useTranslation(language);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const debouncedQuery = useDebounce(searchQuery, 300);
-  const normalizedQuery = debouncedQuery.trim();
-  const { data: searchResults, isLoading: isSearching } = useSearchDramas(normalizedQuery, language);
 
   // Build nav links with translations
   const navLinks = useMemo(() => [
@@ -31,9 +30,8 @@ export function Header() {
     { path: `/${language}/sulih-suara`, label: t("nav.dubbed") },
   ], [language, t]);
 
-  const handleSearchClose = () => {
-    setSearchOpen(false);
-    setSearchQuery("");
+  const handleMobileMenuClose = () => {
+    setMobileMenuOpen(false);
   };
 
   return (
@@ -66,14 +64,7 @@ export function Header() {
           {/* Language Selector, Search & Mobile Menu */}
           <div className="flex items-center gap-2">
             <LanguageSelector />
-
-            <button
-              onClick={() => setSearchOpen(true)}
-              className="p-2.5 rounded-xl hover:bg-muted/50 transition-colors"
-              aria-label={t("nav.search")}
-            >
-              <Search className="w-5 h-5" />
-            </button>
+            <SearchTrigger />
 
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -92,7 +83,7 @@ export function Header() {
               <Link
                 key={link.path}
                 href={link.path}
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={handleMobileMenuClose}
                 className={`block py-3 px-2 text-sm font-medium rounded-lg transition-colors ${
                   pathname === link.path
                     ? "text-foreground bg-muted/50"
@@ -106,100 +97,8 @@ export function Header() {
         )}
       </div>
 
-      {/* Search Overlay (Portal) */}
-      {searchOpen &&
-        typeof document !== "undefined" &&
-        createPortal(
-          <div className="fixed inset-0 bg-background z-[9999] overflow-hidden">
-            <div className="container mx-auto px-4 py-6 h-[100dvh] flex flex-col">
-              <div className="flex items-center gap-4 mb-6 flex-shrink-0">
-                <div className="flex-1 relative min-w-0">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={t("nav.search")}
-                    className="search-input pl-12"
-                    autoFocus
-                  />
-                </div>
-                <button
-                  onClick={handleSearchClose}
-                  className="p-3 rounded-xl hover:bg-muted/50 transition-colors flex-shrink-0"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Search Results */}
-              <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
-                {isSearching && normalizedQuery && (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                  </div>
-                )}
-
-                {searchResults && searchResults.length > 0 && (
-                  <div className="grid gap-3">
-                    {searchResults.map((drama, index) => (
-                      <Link
-                        key={drama.bookId}
-                        href={`/${language}/detail/${drama.bookId}`}
-                        onClick={handleSearchClose}
-                        className="flex gap-4 p-4 rounded-2xl bg-card hover:bg-muted transition-all text-left animate-fade-up overflow-hidden"
-                        style={{ animationDelay: `${index * 50}ms` }}
-                      >
-                        <img
-                          src={drama.cover}
-                          alt={drama.bookName}
-                          className="w-16 h-24 object-cover rounded-xl flex-shrink-0"
-                          loading="lazy"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-display font-semibold text-foreground truncate">{drama.bookName}</h3>
-                          {drama.protagonist && (
-                            <p className="text-sm text-muted-foreground mt-1 truncate">{drama.protagonist}</p>
-                          )}
-                          <p className="text-sm text-muted-foreground line-clamp-2 mt-2">
-                            {drama.introduction}
-                          </p>
-                          {drama.tagNames && (
-                            <div className="flex flex-wrap gap-1.5 mt-2">
-                              {drama.tagNames.slice(0, 3).map((tag) => (
-                                <span key={tag} className="tag-pill text-[10px]">
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                )}
-
-                {searchResults && searchResults.length === 0 && normalizedQuery && (
-                  <div className="text-center py-12">
-                    <p className="text-muted-foreground">
-                      {t("errors.noSearchResults").replace("{query}", normalizedQuery)}
-                    </p>
-                  </div>
-                )}
-
-                {!normalizedQuery && (
-                  <div className="text-center py-12">
-                    <Search className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
-                    <p className="text-muted-foreground">
-                      {t("errors.searchPlaceholder")}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>,
-          document.body
-        )}
+      {/* Search Dialog (rendered via portal in SearchDialog component) */}
+      <SearchDialog />
     </header>
   );
 }

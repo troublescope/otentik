@@ -8,6 +8,7 @@ import { Footer } from '@/components/Footer';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { Suspense } from 'react';
+import { HeaderSkeleton, MainContentSkeleton, FooterSkeleton } from '@/components/layout-skeletons';
 
 interface LangLayoutProps {
   children: React.ReactNode;
@@ -39,7 +40,12 @@ export async function generateStaticParams() {
  * Generate metadata for each language
  */
 export async function generateMetadata({ params }: LangLayoutProps): Promise<Metadata> {
-  const { lang } = await params;
+  // Parallel: fetch params and SEO metadata simultaneously
+  const [{ lang }, seo] = await Promise.all([
+    params,
+    // Start SEO fetch with default language, will update if different
+    getServerSEOMetadata('in').catch(() => null)
+  ]);
   const language = lang as SupportedLanguage;
 
   // Validate language
@@ -47,13 +53,14 @@ export async function generateMetadata({ params }: LangLayoutProps): Promise<Met
     return {};
   }
 
-  const seo = await getServerSEOMetadata(language);
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://dramabox.net';
+  // Fetch correct SEO data if language differs from default
+  const finalSeo = language === 'in' && seo ? seo : await getServerSEOMetadata(language);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://megawe.net';
 
   return {
-    title: seo.siteTitle,
-    description: seo.siteDescription,
-    keywords: seo.siteKeywords,
+    title: finalSeo.siteTitle,
+    description: finalSeo.siteDescription,
+    keywords: finalSeo.siteKeywords,
     authors: [{ name: 'DramaBox' }],
     creator: 'DramaBox',
     publisher: 'DramaBox',
@@ -82,8 +89,8 @@ export async function generateMetadata({ params }: LangLayoutProps): Promise<Met
     openGraph: {
       type: 'website',
       locale: language === 'zhHans' ? 'zh_CN' : language === 'zh' ? 'zh_TW' : language,
-      title: seo.ogTitle,
-      description: seo.ogDescription,
+      title: finalSeo.ogTitle,
+      description: finalSeo.ogDescription,
       siteName: 'DramaBox',
       url: `/${language}`,
       images: [
@@ -91,14 +98,14 @@ export async function generateMetadata({ params }: LangLayoutProps): Promise<Met
           url: '/og-image.png',
           width: 1200,
           height: 630,
-          alt: seo.ogTitle,
+          alt: finalSeo.ogTitle,
         },
       ],
     },
     twitter: {
       card: 'summary_large_image',
-      title: seo.twitterTitle,
-      description: seo.twitterDescription,
+      title: finalSeo.twitterTitle,
+      description: finalSeo.twitterDescription,
       images: ['/og-image.png'],
       creator: '@dramabox',
     },
@@ -123,7 +130,12 @@ export async function generateMetadata({ params }: LangLayoutProps): Promise<Met
  * Language-specific layout
  */
 export default async function LangLayout({ children, params }: LangLayoutProps) {
-  const { lang } = await params;
+  // Parallel: fetch params and direction simultaneously
+  const [{ lang }, direction] = await Promise.all([
+    params,
+    // Start with default direction (ltr for most languages)
+    getServerLanguageDirection('in').catch(() => 'ltr')
+  ]);
   const language = lang as SupportedLanguage;
 
   // Validate language - 404 if not supported
@@ -131,16 +143,21 @@ export default async function LangLayout({ children, params }: LangLayoutProps) 
     notFound();
   }
 
-  const direction = await getServerLanguageDirection(language);
+  // Get correct direction if language differs from default
+  const finalDirection = language === 'in' ? direction : await getServerLanguageDirection(language);
 
   return (
-    <div lang={language} dir={direction}>
+    <div lang={language} dir={finalDirection}>
       <Providers language={language}>
-        <Suspense fallback={<div className="h-16" />}>
+        <Suspense fallback={<HeaderSkeleton />}>
           <Header />
         </Suspense>
-        {children}
-        <Footer />
+        <Suspense fallback={<MainContentSkeleton />}>
+          {children}
+        </Suspense>
+        <Suspense fallback={<FooterSkeleton />}>
+          <Footer />
+        </Suspense>
         <Toaster />
         <Sonner />
       </Providers>

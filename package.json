@@ -5,12 +5,15 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:analyze": "cross-env ANALYZE=true next build --webpack",
+    "build:analyze": "cross-env ANALYZE=true next build",
+    "analyze": "cross-env ANALYZE=true next build",
     "start": "next start",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
     "type-check": "tsc --noEmit",
-    "vercel-build": "next build"
+    "vercel-build": "next build",
+    "bundle:report": "npm run analyze && echo '✅ Bundle analysis complete. Check the generated report.'",
+    "bundle:check": "npm run build && echo '✅ Build complete. Run npm run analyze to see bundle details.'"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

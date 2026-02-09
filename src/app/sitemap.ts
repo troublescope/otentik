@@ -11,7 +11,7 @@ import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/types/language';
  * For dynamic drama pages, see: src/app/[lang]/detail/[bookId]/sitemap.ts
  */
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://dramabox.net';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://megawe.net';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const currentDate = new Date();

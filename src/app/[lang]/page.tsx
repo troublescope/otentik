@@ -37,7 +37,12 @@ export async function generateMetadata({ params }: LangPageProps): Promise<Metad
 }
 
 export default async function LangHomePage({ params }: LangPageProps) {
-  const { lang } = await params;
+  // Parallel: fetch params and start prefetching immediately
+  const [{ lang }, prefetchData] = await Promise.all([
+    params,
+    // Start prefetching immediately with default language
+    fetchDramasServer('in').catch(() => []).then(data => ({ data, lang: 'in' }))
+  ]);
   const language = lang as SupportedLanguage;
 
   // Validate language
@@ -47,10 +52,15 @@ export default async function LangHomePage({ params }: LangPageProps) {
 
   const queryClient = new QueryClient();
 
-  await queryClient.prefetchQuery({
-    queryKey: ["dramas", "foryou", language],
-    queryFn: () => fetchDramasServer(language),
-  });
+  // Use prefetched data if language matches, otherwise fetch correct language
+  if (prefetchData.lang === language && prefetchData.data.length > 0) {
+    queryClient.setQueryData(["dramas", "foryou", language], prefetchData.data);
+  } else {
+    await queryClient.prefetchQuery({
+      queryKey: ["dramas", "foryou", language],
+      queryFn: () => fetchDramasServer(language),
+    });
+  }
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>

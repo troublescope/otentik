@@ -9,7 +9,7 @@ import { MetadataRoute } from 'next';
  * - Point to XML sitemap
  */
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://dramabox.net';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://megawe.net';
 
 export default function robots(): MetadataRoute.Robots {
   return {

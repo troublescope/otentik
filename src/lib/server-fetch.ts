@@ -1,6 +1,7 @@
 import { API_CONFIG } from "@/lib/constants";
 import type { SupportedLanguage } from "@/types/language";
 import type { Drama } from "@/types/drama";
+import { cache } from "react";
 
 /**
  * Vercel Runtime Configuration
@@ -19,7 +20,7 @@ interface ApiResponse<T> {
     message?: string;
 }
 
-export async function fetchDramasServer(lang: SupportedLanguage = "in"): Promise<Drama[]> {
+export const fetchDramasServer = cache(async (lang: SupportedLanguage = "in"): Promise<Drama[]> => {
     try {
         const response = await fetch(`${API_CONFIG.UPSTREAM_API}/api/dramabox/foryou?lang=${lang}`, {
             next: { revalidate: 3600 }, // ISR 1 hour
@@ -40,4 +41,4 @@ export async function fetchDramasServer(lang: SupportedLanguage = "in"): Promise
         console.error("[server-fetch] Failed to fetch dramas:", error);
         throw error; // Re-throw to let React Query handle the error
     }
-}
+});

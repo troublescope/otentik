@@ -4,15 +4,55 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "next-themes";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import { SearchProvider } from "@/contexts/SearchContext";
 import type { SupportedLanguage } from "@/types/language";
-import { useState, Suspense } from "react";
-import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/next";
+import { useState, Suspense, useEffect, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { FEATURES } from "@/lib/constants";
 
 interface ProvidersProps {
   children: React.ReactNode;
   language?: SupportedLanguage;
+}
+
+/**
+ * Dynamic imports for Vercel Analytics with defer loading
+ * These are loaded only after the page is interactive to improve performance
+ */
+const Analytics = dynamic(
+  () => import("@vercel/analytics/react").then(mod => ({ default: mod.Analytics })),
+  { ssr: false }
+);
+
+const SpeedInsights = dynamic(
+  () => import("@vercel/speed-insights/next").then(mod => ({ default: mod.SpeedInsights })),
+  { ssr: false }
+);
+
+/**
+ * Analytics component with defer loading
+ * Loads analytics only after page is fully interactive (2 second delay)
+ */
+function DeferredAnalytics() {
+  const [shouldLoad, setShouldLoad] = useState(false);
+
+  useEffect(() => {
+    // Defer analytics loading until after page is interactive
+    const timer = setTimeout(() => {
+      setShouldLoad(true);
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!shouldLoad) return null;
+
+  return (
+    <>
+      {FEATURES.VERCEL_ANALYTICS && <Analytics />}
+      {FEATURES.SPEED_INSIGHTS && <SpeedInsights />}
+    </>
+  );
 }
 
 export function Providers({ children, language = 'in' }: ProvidersProps) {
@@ -40,13 +80,14 @@ export function Providers({ children, language = 'in' }: ProvidersProps) {
         disableTransitionOnChange
       >
         <LanguageProvider initialLanguage={language}>
-          <TooltipProvider>{children}</TooltipProvider>
+          <SearchProvider>
+            <TooltipProvider>{children}</TooltipProvider>
+          </SearchProvider>
         </LanguageProvider>
       </ThemeProvider>
-      {/* Vercel Analytics & Speed Insights - wrapped in Suspense for performance */}
+      {/* Vercel Analytics & Speed Insights - deferred loading after page is interactive */}
       <Suspense fallback={null}>
-        {FEATURES.VERCEL_ANALYTICS && <Analytics />}
-        {FEATURES.SPEED_INSIGHTS && <SpeedInsights />}
+        <DeferredAnalytics />
       </Suspense>
     </QueryClientProvider>
   );
