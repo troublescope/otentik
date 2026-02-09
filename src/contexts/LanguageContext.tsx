@@ -7,7 +7,7 @@
 
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import type { SupportedLanguage } from '@/types/language';
 import {
   DEFAULT_LANGUAGE,
@@ -111,14 +111,20 @@ export function LanguageProvider({ children, initialLanguage }: LanguageProvider
   const [language, setLanguageState] = useState<SupportedLanguage>(initialLanguage || DEFAULT_LANGUAGE);
   const [isInitialized, setIsInitialized] = useState(false);
 
+  // Use ref to track if we've already initialized to prevent double-initialization
+  const isInitRef = useRef(false);
+
   // Load language from storage on mount, or use initialLanguage from route
   useEffect(() => {
+    // Prevent double-initialization
+    if (isInitRef.current) {
+      return;
+    }
+    isInitRef.current = true;
+
     if (initialLanguage) {
-      // Only update if different to prevent unnecessary re-renders
-      if (language !== initialLanguage) {
-        setLanguageState(initialLanguage);
-        languageStorage.set(initialLanguage);
-      }
+      setLanguageState(initialLanguage);
+      languageStorage.set(initialLanguage);
       setIsInitialized(true);
     } else {
       const storedLang = languageStorage.get();
@@ -131,19 +137,15 @@ export function LanguageProvider({ children, initialLanguage }: LanguageProvider
       }
       setIsInitialized(true);
     }
-    // Note: languageStorage is stable from useMemo, safe to exclude from deps
-    // We check language !== initialLanguage inside to prevent unnecessary updates
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialLanguage]);
+  }, [initialLanguage]); // Only depend on initialLanguage, not on language state
 
   // Stable setLanguage callback - avoids re-renders in consumers
   const setLanguage = useCallback((lang: SupportedLanguage) => {
     setLanguageState(lang);
     languageStorage.set(lang);
     handleLanguageNavigation(lang);
-    // Note: languageStorage is stable from useMemo, safe to exclude from deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []); // languageStorage is stable from useMemo
 
   // Don't render children until language is initialized to prevent hydration mismatch
   if (!isInitialized) {
@@ -176,14 +178,6 @@ export function useLanguageContext(): LanguageContextValue {
     throw new Error('useLanguageContext must be used within a LanguageProvider');
   }
   return context;
-}
-
-/**
- * Hook to access only the language value
- */
-export function useLanguage(): { language: SupportedLanguage } {
-  const { language } = useLanguageContext();
-  return { language };
 }
 
 /**
