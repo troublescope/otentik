@@ -146,13 +146,13 @@ export function LanguageProvider({ children, initialLanguage }: LanguageProvider
   }
 
   // Create stable context value to prevent infinite re-renders
-  // All callbacks are stable, and only language changes trigger re-creation
+  // setLanguage is already stable due to useCallback, don't include it in deps
   const contextValue = useMemo<LanguageContextValue>(() => ({
     language,
     setLanguage,
     isSupported,
     getAvailableLanguages,
-  }), [language, setLanguage]);
+  }), [language]);
 
   return (
     <LanguageContext.Provider value={contextValue}>
