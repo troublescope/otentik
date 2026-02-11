@@ -10,6 +10,8 @@ import ChevronRight from "lucide-react/dist/esm/icons/chevron-right";
 import Play from "lucide-react/dist/esm/icons/play";
 import Loader2 from "lucide-react/dist/esm/icons/loader-2";
 import Settings from "lucide-react/dist/esm/icons/settings";
+import Download from "lucide-react/dist/esm/icons/download";
+import DownloadCloud from "lucide-react/dist/esm/icons/download-cloud";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import {
@@ -18,7 +20,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { DramaDetailDirect, DramaDetailResponseLegacy } from "@/types/drama";
+import type { DramaDetailDirect, DramaDetailResponseLegacy, Episode } from "@/types/drama";
 
 // Helper to check if response is new format
 function isDirectFormat(data: unknown): data is DramaDetailDirect {
@@ -41,6 +43,7 @@ export default function WatchPage() {
   const [currentEpisode, setCurrentEpisode] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
   const [quality, setQuality] = useState(720);
+  const [isDownloadingAll, setIsDownloadingAll] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const { data: detailData, isLoading: detailLoading } = useDramaDetail(bookId || "", language);
@@ -111,15 +114,46 @@ export default function WatchPage() {
   }, [episodes, startIndex, endIndex]);
 
   // Get video URL with selected quality
-  const getVideoUrl = () => {
-    if (!currentEpisodeData || !defaultCdn) return "";
+  const getVideoUrl = (episodeData?: Episode) => {
+    const targetEpisode = episodeData || currentEpisodeData;
+    if (!targetEpisode) return "";
+
+    const cdn = targetEpisode.cdnList.find((c) => c.isDefault === 1) || targetEpisode.cdnList[0];
+    if (!cdn) return "";
 
     const videoPath =
-      defaultCdn.videoPathList.find((v) => v.quality === quality) ||
-      defaultCdn.videoPathList.find((v) => v.isDefault === 1) ||
-      defaultCdn.videoPathList[0];
+      cdn.videoPathList.find((v) => v.quality === quality) ||
+      cdn.videoPathList.find((v) => v.isDefault === 1) ||
+      cdn.videoPathList[0];
 
     return videoPath?.videoPath || "";
+  };
+
+  const triggerDownload = (episode: Episode, bookName: string) => {
+    const url = getVideoUrl(episode);
+    if (!url) return;
+
+    const fileName = `${bookName} - ${episode.chapterName || `Episode ${episode.chapterIndex + 1}`}`;
+    const downloadUrl = `/api/download/${episode.chapterId}?url=${encodeURIComponent(url)}&title=${encodeURIComponent(fileName)}`;
+    
+    const a = document.createElement("a");
+    a.href = downloadUrl;
+    a.download = `${fileName}.mp4`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const handleDownloadAll = async (bookName: string) => {
+    if (!episodes || isDownloadingAll) return;
+    
+    setIsDownloadingAll(true);
+    for (const episode of episodes) {
+      triggerDownload(episode, bookName);
+      // Small delay to prevent browser from blocking multiple downloads
+      await new Promise(resolve => setTimeout(resolve, 800));
+    }
+    setIsDownloadingAll(false);
   };
 
   const handleVideoEnded = () => {
@@ -244,24 +278,35 @@ export default function WatchPage() {
                   </p>
                 </div>
 
-                {/* Episode Navigation */}
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col items-end gap-3">
+                  {/* Episode Navigation */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleEpisodeChange(Math.max(0, currentEpisode - 1))}
+                      disabled={currentEpisode === 0}
+                      className="p-2 rounded-lg bg-muted hover:bg-muted/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <span className="text-sm font-medium min-w-[60px] text-center">
+                      {currentEpisode + 1} / {episodes.length}
+                    </span>
+                    <button
+                      onClick={() => handleEpisodeChange(Math.min(episodes.length - 1, currentEpisode + 1))}
+                      disabled={currentEpisode === episodes.length - 1}
+                      className="p-2 rounded-lg bg-muted hover:bg-muted/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {/* Single Download Button */}
                   <button
-                    onClick={() => handleEpisodeChange(Math.max(0, currentEpisode - 1))}
-                    disabled={currentEpisode === 0}
-                    className="p-2 rounded-lg bg-muted hover:bg-muted/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    onClick={() => currentEpisodeData && triggerDownload(currentEpisodeData, book!.bookName)}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-sm font-medium transition-colors"
                   >
-                    <ChevronLeft className="w-5 h-5" />
-                  </button>
-                  <span className="text-sm font-medium min-w-[60px] text-center">
-                    {currentEpisode + 1} / {episodes.length}
-                  </span>
-                  <button
-                    onClick={() => handleEpisodeChange(Math.min(episodes.length - 1, currentEpisode + 1))}
-                    disabled={currentEpisode === episodes.length - 1}
-                    className="p-2 rounded-lg bg-muted hover:bg-muted/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <ChevronRight className="w-5 h-5" />
+                    <Download className="w-4 h-4" />
+                    <span>Download</span>
                   </button>
                 </div>
               </div>
@@ -271,8 +316,23 @@ export default function WatchPage() {
           {/* Episode List */}
           <div className="glass rounded-xl p-4 h-fit lg:max-h-[calc(100vh-140px)] lg:overflow-hidden flex flex-col">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-bold text-lg">{t(language, "watch.episodeList")}</h2>
-              <span className="text-sm text-muted-foreground">{episodes.length} {t(language, "detail.episodes")}</span>
+              <div className="flex items-center gap-2">
+                <h2 className="font-bold text-lg">{t(language, "watch.episodeList")}</h2>
+                <span className="text-sm text-muted-foreground">({episodes.length})</span>
+              </div>
+              
+              <button
+                onClick={() => handleDownloadAll(book!.bookName)}
+                disabled={isDownloadingAll}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary/10 hover:bg-secondary/20 text-secondary text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                {isDownloadingAll ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <DownloadCloud className="w-4 h-4" />
+                )}
+                <span>{isDownloadingAll ? "Downloading..." : "Download All"}</span>
+              </button>
             </div>
 
             {/* Pagination */}
