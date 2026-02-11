@@ -46,7 +46,7 @@ export async function GET() {
       buildId,
       timestamp,
       environment,
-      version: require('../../../package.json').version,
+      version: '0.1.0', // Avoid dynamic require in build
       bundles: {
         pages: '~250KB (estimated)',
         static: '~150KB (estimated)',

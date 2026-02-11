@@ -67,6 +67,12 @@ declare module "lucide-react/dist/esm/icons/download" {
   export default Download;
 }
 
+declare module "lucide-react/dist/esm/icons/download-cloud" {
+  import React from "react";
+  const DownloadCloud: React.FC<React.SVGProps<SVGSVGElement>>;
+  export default DownloadCloud;
+}
+
 declare module "lucide-react/dist/esm/icons/external-link" {
   import React from "react";
   const ExternalLink: React.FC<React.SVGProps<SVGSVGElement>>;
